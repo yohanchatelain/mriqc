@@ -358,6 +358,8 @@ class nipype(_Config):
     """Enable resource monitor."""
     stop_on_first_crash: bool = True
     """Whether the workflow should stop or continue after the first error."""
+    random_seed: int | None = None
+    """Random seed for reproducibility."""
 
     @classmethod
     def get_plugin(cls) -> dict[str, Any]:
