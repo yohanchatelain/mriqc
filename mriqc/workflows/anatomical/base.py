@@ -288,18 +288,14 @@ def spatial_normalization(name='SpatialNormalization'):
         norm.inputs.reference_image = str(get_template(tpl_id, suffix='T2w'))
         norm.inputs.reference_mask = str(get_template(tpl_id, desc='brain', suffix='mask')[0])
 
-    at = ApplyTransforms(
+    # Project standard TPMs into T1w space
+    tpms_std2t1w = pe.MapNode(
+        ApplyTransforms(
             dimension=3,
             default_value=0,
             interpolation='Gaussian',
             float=config.execution.ants_float,
-        )
-    if config.nipype.random_seed is not None:
-        at.inputs.random_seed = config.nipype.random_seed
-        
-    # Project standard TPMs into T1w space
-    tpms_std2t1w = pe.MapNode(
-        at,
+        ),
         iterfield=['input_image'],
         name='tpms_std2t1w',
     )
