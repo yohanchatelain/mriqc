@@ -298,7 +298,14 @@ not be what you want in, e.g., shared systems like a HPC cluster.""",
         default=False,
         help='Open Python debugger (pdb) on exceptions.',
     )
-
+    g_perfm.add_argument(
+        '--random-seed',
+        action='store',
+        default=None,
+        type=int,
+        help='Random seed for reproducibility.',
+    )
+    
     # Control instruments
     g_outputs = parser.add_argument_group('Instrumental options')
     g_outputs.add_argument(
