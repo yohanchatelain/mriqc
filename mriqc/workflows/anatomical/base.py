@@ -398,7 +398,7 @@ def init_brain_tissue_segmentation(name='brain_tissue_segmentation'):
             out_classified_image_name='segment.nii.gz',
             output_posteriors_name_template='segment_%02d.nii.gz',
             num_threads=config.nipype.omp_nthreads,
-            random_seed=config.nipype.random_seed is None,
+            use_random_seed=config.nipype.random_seed is None,
         ),
         name='segmentation',
         mem_gb=5,
