@@ -151,7 +151,7 @@ def anat_qc_workflow(name='anatMRIQC'):
         skull_stripping = init_rodent_brain_extraction_wf(template_id=config.workflow.template_id)
         ss_bias_field = 'final_n4.bias_image'
     # 3. Head mask
-    hmsk = headmsk_wf(omp_nthreads=config.nipype.omp_nthreads)
+    hmsk = headmsk_wf(omp_nthreads=config.nipype.omp_nthreads, random_seed=config.nipype.random_seed)
     # 4. Spatial Normalization, using ANTs
     norm = spatial_normalization()
     # 5. Air mask (with and without artifacts)
@@ -533,7 +533,7 @@ def compute_iqms(name='ComputeIQMs'):
     return workflow
 
 
-def headmsk_wf(name='HeadMaskWorkflow', omp_nthreads=1):
+def headmsk_wf(name='HeadMaskWorkflow', omp_nthreads=1, random_seed=None):
     """
     Computes a head mask as in [Mortamet2009]_.
 
@@ -561,7 +561,7 @@ def headmsk_wf(name='HeadMaskWorkflow', omp_nthreads=1):
 
     enhance = pe.Node(
         niu.Function(
-            input_names=['in_file', 'wm_tpm'],
+            input_names=['in_file', 'wm_tpm', 'random_seed'],
             output_names=['out_file'],
             function=_enhance,
         ),
@@ -592,6 +592,7 @@ def headmsk_wf(name='HeadMaskWorkflow', omp_nthreads=1):
         thresh.inputs.aniso = True
         thresh.inputs.thresh = 4.0
 
+    enhance.inputs.random_seed = random_seed
     apply_mask = pe.Node(ApplyMask(), name='apply_mask')
 
     # fmt: off
@@ -703,12 +704,13 @@ def _binarize(in_file, threshold=0.5, out_file=None):
     return out_file
 
 
-def _enhance(in_file, wm_tpm, out_file=None):
+def _enhance(in_file, wm_tpm, random_seed, out_file=None):
     import nibabel as nb
     import numpy as np
 
     from mriqc.workflows.utils import generate_filename
 
+    rng = np.random.default_rng(random_seed)
     imnii = nb.load(in_file)
     data = imnii.get_fdata(dtype=np.float32)
     range_max = np.percentile(data[data > 0], 99.98)
@@ -723,7 +725,7 @@ def _enhance(in_file, wm_tpm, out_file=None):
     wm_sigma = np.sqrt(np.average((data - wm_mu) ** 2, weights=wm_prob))
 
     # Resample signal excess pixels
-    data[excess] = np.random.normal(loc=wm_mu, scale=wm_sigma, size=excess.sum())
+    data[excess] = rng.normal(loc=wm_mu, scale=wm_sigma, size=excess.sum())
 
     out_file = out_file or str(generate_filename(in_file, suffix='enhanced').absolute())
     nb.Nifti1Image(data, imnii.affine, imnii.header).to_filename(out_file)
